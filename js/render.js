@@ -103,6 +103,9 @@ Renderer.prototype.computeLayout = function () {
   var btnRevive = { x: panel.x + panel.w / 2 - wideW / 2, y: panelOver.y + panelOver.h - btnH2 * 2 - 14 - 22, w: wideW, h: btnH2 };
   var btnAgainOver = { x: panel.x + panel.w / 2 - wideW / 2, y: btnRevive.y + btnH2 + 14, w: wideW, h: btnH2 };
 
+  // 广告右上角关闭按钮（与「广告」标识同一行）
+  var btnAdClose = { x: w - 12 - 40, y: top, w: 40, h: 40 };
+
   this.layout = {
     margin: margin,
     top: top,
@@ -126,7 +129,8 @@ Renderer.prototype.computeLayout = function () {
     btnKeep: btnKeep,
     btnAgainWin: btnAgainWin,
     btnRevive: btnRevive,
-    btnAgainOver: btnAgainOver
+    btnAgainOver: btnAgainOver,
+    btnAdClose: btnAdClose
   };
 };
 
@@ -499,6 +503,25 @@ Renderer.prototype.drawPhotoAd = function (pa, now) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('广告', 44, badgeY + 16);
+
+  // 右上角关闭按钮 ×
+  var C = this.layout.btnAdClose;
+  var cx = C.x + C.w / 2;
+  var cy = C.y + C.h / 2;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+  ctx.beginPath();
+  ctx.arc(cx, cy, C.w / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  var k = C.w * 0.26;
+  ctx.beginPath();
+  ctx.moveTo(cx - k, cy - k);
+  ctx.lineTo(cx + k, cy + k);
+  ctx.moveTo(cx + k, cy - k);
+  ctx.lineTo(cx - k, cy + k);
+  ctx.stroke();
 
   // 底部状态条
   ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';

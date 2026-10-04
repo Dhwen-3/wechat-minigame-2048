@@ -140,6 +140,17 @@ function boot() {
     };
   }
 
+  // 关闭广告：移动模式直接跳过；复活模式视为中途关闭，不发奖励
+  function closePhotoAd() {
+    if (!photoAd) return;
+    var mode = photoAd.mode;
+    var started = !!photoAd.img; // 已进入倒计时
+    photoAd = null;
+    if (mode === 'revive') {
+      showToast(started ? '看完整个广告才能复活哦' : '广告已关闭');
+    }
+  }
+
   // 是否具备展示「看广告复活」按钮的条件（素材还在加载中也算，见 watchReviveAd）
   function adButtonAvailable() {
     return ad.isConfigured() || ad.getPhotoState() !== 'error';
@@ -238,7 +249,16 @@ function boot() {
   });
 
   wx.onTouchEnd(function (e) {
-    if (photoAd) return; // 广告播放中锁定输入
+    if (photoAd) {
+      // 广告播放中仅响应右上角关闭按钮
+      if (e && e.changedTouches && e.changedTouches[0]) {
+        var L = renderer.layout;
+        var cx = e.changedTouches[0].clientX;
+        var cy = e.changedTouches[0].clientY;
+        if (hit(L.btnAdClose, cx, cy)) closePhotoAd();
+      }
+      return;
+    }
     if (!touchStart || !e || !e.changedTouches || !e.changedTouches[0]) return;
     var dx = e.changedTouches[0].clientX - touchStart.x;
     var dy = e.changedTouches[0].clientY - touchStart.y;
