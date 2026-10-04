@@ -146,6 +146,8 @@ module.exports = {
   // 照片广告是否可用
   photoReady: function () { return photoState === 'ready' && !!photoImg; },
   getPhoto: function () { return photoImg; },
+  // 素材加载状态：none | loading | ready | error
+  getPhotoState: function () { return photoState; },
   // 仅供网页预览/自动化测试注入模拟广告位 ID
   _debugSetAdUnitId: function (id) { AD_UNIT_ID = id || ''; }
 };

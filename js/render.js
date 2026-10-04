@@ -470,7 +470,8 @@ Renderer.prototype.drawToast = function (st, now) {
   ctx.globalAlpha = 1;
 };
 
-// 照片广告：全屏展示素材，左上角「广告」标识，底部倒计时
+// 照片广告：全屏展示素材，左上角「广告」标识，底部倒计时；
+// 素材未就绪时先显示「广告加载中」，就绪后才开始计时
 Renderer.prototype.drawPhotoAd = function (pa, now) {
   var ctx = this.ctx;
   var v = this.view;
@@ -478,8 +479,9 @@ Renderer.prototype.drawPhotoAd = function (pa, now) {
   ctx.fillStyle = '#1b1916';
   ctx.fillRect(0, 0, v.width, v.height);
 
+  var waiting = !pa.img;
   var img = pa.img;
-  if (img && img.width && img.height) {
+  if (!waiting && img.width && img.height) {
     // contain 等比缩放，保证人脸完整
     var scale = Math.min(v.width / img.width, v.height / img.height);
     var dw = img.width * scale;
@@ -498,15 +500,19 @@ Renderer.prototype.drawPhotoAd = function (pa, now) {
   ctx.textBaseline = 'middle';
   ctx.fillText('广告', 44, badgeY + 16);
 
-  // 底部倒计时
-  var remain = Math.max(0, Math.ceil((pa.ms - (now - pa.start)) / 1000));
+  // 底部状态条
   ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
   ctx.fillRect(0, v.height - 60, v.width, 60);
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 15px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('复活奖励 ' + remain + ' 秒后发放', v.width / 2, v.height - 30);
+  if (waiting) {
+    ctx.fillText('广告加载中…', v.width / 2, v.height - 30);
+  } else {
+    var remain = Math.max(0, Math.ceil((pa.ms - (now - pa.start)) / 1000));
+    ctx.fillText('复活奖励 ' + remain + ' 秒后发放', v.width / 2, v.height - 30);
+  }
 };
 
 module.exports = Renderer;

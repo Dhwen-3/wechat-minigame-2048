@@ -107,6 +107,7 @@ function boot() {
   }
 
   // 看广告复活：优先真实激励视频；未配置广告位时播照片广告
+  // 照片素材尚未加载完也允许点：先显示「加载中」，就绪后自动开始倒计时
   function watchReviveAd() {
     if (ad.isConfigured()) {
       ad.show(grantReviveReward, function (reason) {
@@ -114,11 +115,17 @@ function boot() {
       });
       return;
     }
-    if (ad.photoReady()) {
-      photoAd = { start: curTime, img: ad.getPhoto() };
+    if (ad.getPhotoState() !== 'error') {
+      photoAd = { start: -1, waitStart: curTime, img: ad.photoReady() ? ad.getPhoto() : null };
+      if (photoAd.img) photoAd.start = curTime;
       return;
     }
     showToast('广告不可用，请稍后再试');
+  }
+
+  // 是否具备展示「看广告复活」按钮的条件（素材还在加载中也算，见 watchReviveAd）
+  function adButtonAvailable() {
+    return ad.isConfigured() || ad.getPhotoState() !== 'error';
   }
 
   // 发放复活奖励：清除最小的几个方块，继续本局
@@ -187,8 +194,7 @@ function boot() {
       return;
     }
     if (game.over) {
-      var showAdBtns = ad.isConfigured() || ad.photoReady();
-      if (showAdBtns) {
+      if (adButtonAvailable()) {
         if (hit(L.btnRevive, x, y)) { watchReviveAd(); return; }
         if (hit(L.btnAgainOver, x, y)) restart();
       } else if (hit(L.btnAgain, x, y)) {
@@ -242,9 +248,20 @@ function boot() {
 
   function update(now) {
     curTime = now;
-    if (photoAd && now - photoAd.start >= PHOTO_AD_MS) {
-      photoAd = null;
-      grantReviveReward();
+    if (photoAd) {
+      if (!photoAd.img) {
+        // 等待照片素材就绪；超过 8 秒仍未就绪则放弃本次复活
+        if (ad.photoReady()) {
+          photoAd.img = ad.getPhoto();
+          photoAd.start = now;
+        } else if (now - photoAd.waitStart >= 8000) {
+          photoAd = null;
+          showToast('广告加载失败，请稍后再试');
+        }
+      } else if (now - photoAd.start >= PHOTO_AD_MS) {
+        photoAd = null;
+        grantReviveReward();
+      }
     }
     if (anim.phase === 'slide' && now - anim.start >= SLIDE_MS) {
       anim = { phase: 'pop', start: now };
@@ -281,7 +298,7 @@ function boot() {
       slideMs: SLIDE_MS,
       popMs: POP_MS,
       showWin: game.won && !game.keepPlaying,
-      adAvailable: ad.isConfigured() || ad.photoReady(),
+      adAvailable: adButtonAvailable(),
       toast: toast,
       photoAd: photoAd ? { start: photoAd.start, ms: PHOTO_AD_MS, img: photoAd.img } : null,
       floats: floats
@@ -307,7 +324,8 @@ function boot() {
         setAdUnitId: ad._debugSetAdUnitId,
         isConfigured: ad.isConfigured,
         photoReady: ad.photoReady,
-        getPhoto: ad.getPhoto
+        getPhoto: ad.getPhoto,
+        getPhotoState: ad.getPhotoState
       }
     };
   }
