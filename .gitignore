@@ -1,0 +1,12 @@
+# 系统文件
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# 编辑器/IDE
+.idea/
+.vscode/
+*.swp
+
+# 微信开发者工具本地配置（含个人偏好，不入库）
+project.private.config.json

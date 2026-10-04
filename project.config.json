@@ -1,0 +1,22 @@
+{
+  "description": "2048 合并挑战 · 微信小游戏",
+  "compileType": "game",
+  "appid": "touristappid",
+  "projectname": "minigame-2048",
+  "packOptions": {
+    "ignore": [
+      { "type": "folder", "value": "web-preview" },
+      { "type": "folder", "value": "test" },
+      { "type": "file", "value": "README.md" }
+    ],
+    "include": []
+  },
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": false,
+    "minified": true,
+    "uglifyFileName": false
+  },
+  "condition": {}
+}
