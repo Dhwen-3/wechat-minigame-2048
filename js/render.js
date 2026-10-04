@@ -179,7 +179,7 @@ Renderer.prototype.drawHeader = function (game, st, now) {
   ctx.font = L.subFont + 'px sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText('滑动合并，冲击 2048！', L.margin, L.btnNew.y + L.btnNew.h / 2 + L.subFont * 0.36);
+  ctx.fillText('看吴一凡复活', L.margin, L.btnNew.y + L.btnNew.h / 2 + L.subFont * 0.36);
 
   this.drawButton(L.btnNew, '新游戏', Math.round(L.btnNew.h * 0.44));
 
