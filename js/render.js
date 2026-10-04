@@ -511,7 +511,11 @@ Renderer.prototype.drawPhotoAd = function (pa, now) {
     ctx.fillText('广告加载中…', v.width / 2, v.height - 30);
   } else {
     var remain = Math.max(0, Math.ceil((pa.ms - (now - pa.start)) / 1000));
-    ctx.fillText('复活奖励 ' + remain + ' 秒后发放', v.width / 2, v.height - 30);
+    ctx.fillText(
+      pa.mode === 'revive' ? ('复活奖励 ' + remain + ' 秒后发放') : ('广告剩余 ' + remain + ' 秒，稍后继续'),
+      v.width / 2,
+      v.height - 30
+    );
   }
 };
 

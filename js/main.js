@@ -116,11 +116,28 @@ function boot() {
       return;
     }
     if (ad.getPhotoState() !== 'error') {
-      photoAd = { start: -1, waitStart: curTime, img: ad.photoReady() ? ad.getPhoto() : null };
-      if (photoAd.img) photoAd.start = curTime;
+      photoAd = {
+        mode: 'revive',
+        start: ad.photoReady() ? curTime : -1,
+        waitStart: curTime,
+        img: ad.photoReady() ? ad.getPhoto() : null
+      };
       return;
     }
     showToast('广告不可用，请稍后再试');
+  }
+
+  // 每次拖动弹一次照片广告（纯彩蛋，不走真实广告位，避免消耗广告次数）
+  function triggerMoveAd() {
+    if (ad.isConfigured()) return;
+    if (ad.getPhotoState() === 'error') return;
+    if (photoAd) return;
+    photoAd = {
+      mode: 'move',
+      start: ad.photoReady() ? curTime : -1,
+      waitStart: curTime,
+      img: ad.photoReady() ? ad.getPhoto() : null
+    };
   }
 
   // 是否具备展示「看广告复活」按钮的条件（素材还在加载中也算，见 watchReviveAd）
@@ -171,6 +188,7 @@ function boot() {
     }
     saveGame();
     anim = { phase: 'slide', start: curTime };
+    triggerMoveAd(); // 彩蛋：每拖动一步弹一次照片广告
   }
 
   function hit(rect, x, y) {
@@ -250,17 +268,19 @@ function boot() {
     curTime = now;
     if (photoAd) {
       if (!photoAd.img) {
-        // 等待照片素材就绪；超过 8 秒仍未就绪则放弃本次复活
+        // 等待照片素材就绪；超过 8 秒仍未就绪则跳过本次广告
         if (ad.photoReady()) {
           photoAd.img = ad.getPhoto();
           photoAd.start = now;
         } else if (now - photoAd.waitStart >= 8000) {
+          var timedOutRevive = photoAd.mode === 'revive';
           photoAd = null;
-          showToast('广告加载失败，请稍后再试');
+          if (timedOutRevive) showToast('广告加载失败，请稍后再试');
         }
       } else if (now - photoAd.start >= PHOTO_AD_MS) {
+        var mode = photoAd.mode;
         photoAd = null;
-        grantReviveReward();
+        if (mode === 'revive') grantReviveReward();
       }
     }
     if (anim.phase === 'slide' && now - anim.start >= SLIDE_MS) {
@@ -300,7 +320,7 @@ function boot() {
       showWin: game.won && !game.keepPlaying,
       adAvailable: adButtonAvailable(),
       toast: toast,
-      photoAd: photoAd ? { start: photoAd.start, ms: PHOTO_AD_MS, img: photoAd.img } : null,
+      photoAd: photoAd ? { start: photoAd.start, ms: PHOTO_AD_MS, img: photoAd.img, mode: photoAd.mode } : null,
       floats: floats
     }, now);
   }
