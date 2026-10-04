@@ -14,7 +14,8 @@ var ad = require('./ad.js');
 var GAME_TITLE = '2048';
 var SLIDE_MS = 100; // 滑动动画时长
 var POP_MS = 140;   // 合并/新块弹出时长
-var REVIVE_CLEAR = 4; // 复活奖励：清除最小方块的个数（与结束弹窗文案保持一致）
+var REVIVE_CLEAR = 4;  // 复活奖励：清除最小方块的个数（与结束弹窗文案保持一致）
+var PHOTO_AD_MS = 3000; // 照片广告展示时长
 
 function getSystemInfo() {
   try {
@@ -62,13 +63,14 @@ function boot() {
   sound.setEnabled(!muted);
   renderer.muted = muted;
 
-  // 已配置广告位时预创建广告实例，加快首次拉起
-  if (ad.isConfigured()) ad.preload();
+  // 已配置真实广告位时预创建实例；同时预加载照片广告素材
+  ad.preload();
 
   var anim = { phase: 'idle', start: 0 };
   var pendingDir = null; // 动画期间的输入缓冲
   var floats = [];       // 得分飘字
   var toast = null;      // 底部提示 {text, t0}
+  var photoAd = null;    // 照片广告播放状态 {start, img}
   var winSoundPlayed = false;
   var overSoundPlayed = false;
   var curTime = 0;
@@ -104,20 +106,28 @@ function boot() {
     storage.clearSave();
   }
 
-  // 看广告复活：完整观看后清除最小的几个方块，继续本局
+  // 看广告复活：优先真实激励视频；未配置广告位时播照片广告
   function watchReviveAd() {
-    ad.show(
-      function () {
-        var removed = game.revive(REVIVE_CLEAR);
-        saveGame();
-        sound.merge(removed.length);
-        vibrate('light');
-        showToast('复活成功！已清除 ' + removed.length + ' 个方块');
-      },
-      function (reason) {
+    if (ad.isConfigured()) {
+      ad.show(grantReviveReward, function (reason) {
         showToast(reason || '广告未能完成，暂无奖励');
-      }
-    );
+      });
+      return;
+    }
+    if (ad.photoReady()) {
+      photoAd = { start: curTime, img: ad.getPhoto() };
+      return;
+    }
+    showToast('广告不可用，请稍后再试');
+  }
+
+  // 发放复活奖励：清除最小的几个方块，继续本局
+  function grantReviveReward() {
+    var removed = game.revive(REVIVE_CLEAR);
+    saveGame();
+    sound.merge(removed.length);
+    vibrate('light');
+    showToast('复活成功！已清除 ' + removed.length + ' 个方块');
   }
 
   function vibrate(type) {
@@ -177,7 +187,8 @@ function boot() {
       return;
     }
     if (game.over) {
-      if (ad.isConfigured()) {
+      var showAdBtns = ad.isConfigured() || ad.photoReady();
+      if (showAdBtns) {
         if (hit(L.btnRevive, x, y)) { watchReviveAd(); return; }
         if (hit(L.btnAgainOver, x, y)) restart();
       } else if (hit(L.btnAgain, x, y)) {
@@ -203,6 +214,7 @@ function boot() {
   });
 
   wx.onTouchEnd(function (e) {
+    if (photoAd) return; // 广告播放中锁定输入
     if (!touchStart || !e || !e.changedTouches || !e.changedTouches[0]) return;
     var dx = e.changedTouches[0].clientX - touchStart.x;
     var dy = e.changedTouches[0].clientY - touchStart.y;
@@ -230,6 +242,10 @@ function boot() {
 
   function update(now) {
     curTime = now;
+    if (photoAd && now - photoAd.start >= PHOTO_AD_MS) {
+      photoAd = null;
+      grantReviveReward();
+    }
     if (anim.phase === 'slide' && now - anim.start >= SLIDE_MS) {
       anim = { phase: 'pop', start: now };
     } else if (anim.phase === 'pop' && now - anim.start >= POP_MS) {
@@ -265,8 +281,9 @@ function boot() {
       slideMs: SLIDE_MS,
       popMs: POP_MS,
       showWin: game.won && !game.keepPlaying,
-      adAvailable: ad.isConfigured(),
+      adAvailable: ad.isConfigured() || ad.photoReady(),
       toast: toast,
+      photoAd: photoAd ? { start: photoAd.start, ms: PHOTO_AD_MS, img: photoAd.img } : null,
       floats: floats
     }, now);
   }
@@ -288,7 +305,9 @@ function boot() {
       ad: {
         // 网页预览里注入模拟广告位 ID，验证完整广告流程
         setAdUnitId: ad._debugSetAdUnitId,
-        isConfigured: ad.isConfigured
+        isConfigured: ad.isConfigured,
+        photoReady: ad.photoReady,
+        getPhoto: ad.getPhoto
       }
     };
   }

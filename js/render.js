@@ -159,6 +159,7 @@ Renderer.prototype.draw = function (game, st, now) {
   }
   if (overlay) this.drawOverlay(game, overlay === 'win', st);
   this.drawToast(st, now);
+  if (st.photoAd) this.drawPhotoAd(st.photoAd, now);
 };
 
 Renderer.prototype.drawHeader = function (game, st, now) {
@@ -467,6 +468,45 @@ Renderer.prototype.drawToast = function (st, now) {
     ctx.fillText(lines[j], v.width / 2, boxY + 11 + lineH * (j + 0.5));
   }
   ctx.globalAlpha = 1;
+};
+
+// 照片广告：全屏展示素材，左上角「广告」标识，底部倒计时
+Renderer.prototype.drawPhotoAd = function (pa, now) {
+  var ctx = this.ctx;
+  var v = this.view;
+
+  ctx.fillStyle = '#1b1916';
+  ctx.fillRect(0, 0, v.width, v.height);
+
+  var img = pa.img;
+  if (img && img.width && img.height) {
+    // contain 等比缩放，保证人脸完整
+    var scale = Math.min(v.width / img.width, v.height / img.height);
+    var dw = img.width * scale;
+    var dh = img.height * scale;
+    ctx.drawImage(img, (v.width - dw) / 2, (v.height - dh) / 2, dw, dh);
+  }
+
+  // 左上角「广告」标识
+  var badgeY = v.safeTop + 12;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  this.roundRect(ctx, 12, badgeY, 64, 30, 6);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '15px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('广告', 44, badgeY + 16);
+
+  // 底部倒计时
+  var remain = Math.max(0, Math.ceil((pa.ms - (now - pa.start)) / 1000));
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.fillRect(0, v.height - 60, v.width, 60);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 15px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('复活奖励 ' + remain + ' 秒后发放', v.width / 2, v.height - 30);
 };
 
 module.exports = Renderer;
